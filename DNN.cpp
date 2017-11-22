@@ -364,7 +364,7 @@ int main()
         加载数据
     **/
     dataToMatrix dataset;
-    dataset.loadData(&dataset,"datasets//lllll.txt");
+    dataset.loadData(&dataset,"datasets//test.txt");
 
     /**
         将数据转换成矩阵形式
