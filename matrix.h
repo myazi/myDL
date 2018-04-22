@@ -67,21 +67,41 @@ public:
         }
         matrix->col=col;
         matrix->row=row;
-        matrix->mat=new double *[col];
+        try
+        {
+            matrix->mat=new double *[col];
+        }
+        catch(...)
+        {
+            cout<<"initMatrix fail1aaaa"<<endl;
+            exit(-1);
+        }
+        /*
         if(!matrix->mat)
         {
             cout<<"initMatrix fail1"<<endl;
             exit(-1);
         }
+        */
         int i=0,j=0;
         for(i=0; i<col; i++)
         {
-            matrix->mat[i]=new double[row];
+            try
+            {
+                matrix->mat[i]=new double[row];
+            }
+            catch(...)
+            {
+                cout<<"initMatrix fail1aaaa"<<endl;
+                exit(-1);
+            }
+            /*
             if(!matrix->mat[i])
             {
                 cout<<"initMatrix fail2"<<endl;
                 exit(-1);
             }
+            */
             for(j=0; j<row; j++)
             {
                 matrix->mat[i][j]=0;
@@ -243,7 +263,23 @@ public:
         }
         return 0;
     }
-
+    int mult(Matrix *mulMatrix,Matrix A, Matrix B)
+    {
+        if(A.col!=B.col || A.row!=B.row || mulMatrix->col!=A.col ||mulMatrix->row!=A.row)
+        {
+            cout<<"mulMatrix matrix1 matrix2 is no"<<endl;
+            exit(-1);
+        }
+        int i,j;
+        for(i=0;i<A.col;i++)
+        {
+            for(j=0;j<A.row;j++)
+            {
+                mulMatrix->mat[i][j]=A.mat[i][j]*B.mat[i][j];
+            }
+        }
+        return 0;
+    }
     int multsmatrix(Matrix *multsMatrix,Matrix matrix1,Matrix matrix2)//矩阵形式的相乘
     {
         if(matrix1.row!=matrix2.col||multsMatrix->col!=matrix1.col||multsMatrix->row!=matrix2.row)

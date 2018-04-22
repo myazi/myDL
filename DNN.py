@@ -7,6 +7,10 @@ Created on Wed Oct 11 21:33:19 2017
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
+import sklearn
+import sklearn.datasets
+import scipy.io
+import math
 
 def load_dataset():
     """
@@ -16,7 +20,7 @@ def load_dataset():
     train_dataset = h5py.File('datasets/train_catvnoncat.h5', "r")
     train_set_x_orig = np.array(train_dataset["train_set_x"][:]) # your train set features
     train_set_y_orig = np.array(train_dataset["train_set_y"][:]) # your train set labels
-
+    print(np.shape(train_set_x_orig))
     test_dataset = h5py.File('datasets/test_catvnoncat.h5', "r")
     test_set_x_orig = np.array(test_dataset["test_set_x"][:]) # your test set features
     test_set_y_orig = np.array(test_dataset["test_set_y"][:]) # your test set labels
@@ -57,6 +61,74 @@ def load_dataset():
     
     return train_set_x_flatten, train_set_y_orig, test_set_x_flatten, test_set_y_orig, classes
 
+def load_dataset_2():
+    np.random.seed(1)
+    train_X, train_Y = sklearn.datasets.make_circles(n_samples=300, noise=.05)
+    np.random.seed(2)
+    test_X, test_Y = sklearn.datasets.make_circles(n_samples=100, noise=.05)
+    # Visualize the data
+    #plt.scatter(train_X[:, 0], train_X[:, 1], c=train_Y, s=40, cmap=plt.cm.Spectral);
+    train_X = train_X.T
+    train_Y = train_Y.reshape((1, train_Y.shape[0]))
+    test_X = test_X.T
+    test_Y = test_Y.reshape((1, test_Y.shape[0]))
+    return train_X, train_Y, test_X, test_Y
+
+def load_2D_dataset():
+    data = scipy.io.loadmat('datasets/data.mat')
+    train_X = data['X'].T
+    train_Y = data['y'].T
+    test_X = data['Xval'].T
+    test_Y = data['yval'].T
+
+    #plt.scatter(train_X[0, :], train_X[1, :], c=train_Y, s=40, cmap=plt.cm.Spectral);
+    
+    return train_X, train_Y, test_X, test_Y
+
+
+def random_mini_batches(X, Y, mini_batch_size = 64, seed = 0):
+    """
+    Creates a list of random minibatches from (X, Y)
+    
+    Arguments:
+    X -- input data, of shape (input size, number of examples)
+    Y -- true "label" vector (1 for blue dot / 0 for red dot), of shape (1, number of examples)
+    mini_batch_size -- size of the mini-batches, integer
+    
+    Returns:
+    mini_batches -- list of synchronous (mini_batch_X, mini_batch_Y)
+    """
+    
+    np.random.seed(seed)            # To make your "random" minibatches the same as ours
+    m = X.shape[1]                  # number of training examples
+    mini_batches = []
+        
+    # Step 1: Shuffle (X, Y)
+    permutation = list(np.random.permutation(m))
+    shuffled_X = X[:, permutation]
+    shuffled_Y = Y[:, permutation].reshape((1,m))
+
+    # Step 2: Partition (shuffled_X, shuffled_Y). Minus the end case.
+    num_complete_minibatches = int(math.floor(m/mini_batch_size)) # number of mini batches of size mini_batch_size in your partitionning
+    for k in range(0, num_complete_minibatches):
+        ### START CODE HERE ### (approx. 2 lines)
+        mini_batch_X = shuffled_X[:, k*mini_batch_size : (k+1)*mini_batch_size]
+        mini_batch_Y = shuffled_Y[:, k*mini_batch_size : (k+1)*mini_batch_size]
+        ### END CODE HERE ###
+        mini_batch = (mini_batch_X, mini_batch_Y)
+        mini_batches.append(mini_batch)
+    
+    # Handling the end case (last mini-batch < mini_batch_size)
+    if m % mini_batch_size != 0:
+        ### START CODE HERE ### (approx. 2 lines)
+        mini_batch_X = shuffled_X[:, num_complete_minibatches*mini_batch_size : ]
+        mini_batch_Y = shuffled_Y[:, num_complete_minibatches*mini_batch_size : ]
+        ### END CODE HERE ###
+        mini_batch = (mini_batch_X, mini_batch_Y)
+        mini_batches.append(mini_batch)
+    
+    return mini_batches
+
 """
 范数
 
@@ -94,7 +166,7 @@ def init_parameters(in_n,hid_n,out_n):
     
     return parameters
  
-def init_parameters_deep(layer_dims):
+def init_parameters_deep(layer_dims,initialization):
     
     """
     可调整超参的神经网络初始化
@@ -106,17 +178,32 @@ def init_parameters_deep(layer_dims):
     np.random.seed(1)
     parameters = {}
     L = len(layer_dims)            # number of layers in the network
-
-    for l in range(1, L):
-        parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1]) / np.sqrt(layer_dims[l-1]) #*0.01
-        parameters['b' + str(l)] = np.zeros((layer_dims[l], 1))
+    if initialization == "zeros":
+        for l in range(1, L):
+            parameters['W' + str(l)] = np.zeros((layer_dims[l], layer_dims[l-1])) 
+            parameters['b' + str(l)] = np.zeros(((layer_dims[l], 1)))
         
-        assert(parameters['W' + str(l)].shape == (layer_dims[l], layer_dims[l-1]))
-        assert(parameters['b' + str(l)].shape == (layer_dims[l], 1))
+            assert(parameters['W' + str(l)].shape == (layer_dims[l], layer_dims[l-1]))
+            assert(parameters['b' + str(l)].shape == (layer_dims[l], 1))
+    elif initialization == "random":
+        np.random.seed(3) 
+        for l in range(1, L):
+            parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1])  #/ np.sqrt((layer_dims[l-1]+layer_dims[l])/2)
+            parameters['b' + str(l)] = np.zeros(((layer_dims[l], 1)))
+        
+            assert(parameters['W' + str(l)].shape == (layer_dims[l], layer_dims[l-1]))
+            assert(parameters['b' + str(l)].shape == (layer_dims[l], 1))
+    elif initialization == "he":
+        for l in range(1, L):
+            parameters['W' + str(l)] = np.random.rand(layer_dims[l], layer_dims[l-1]) / np.sqrt(layer_dims[l-1]) #* np.sqrt(2.0/layer_dims[l-1]) #*0.01
+            parameters['b' + str(l)] = np.zeros(((layer_dims[l], 1)))
+            
+            assert(parameters['W' + str(l)].shape == (layer_dims[l], layer_dims[l-1]))
+            assert(parameters['b' + str(l)].shape == (layer_dims[l], 1))
 
     return parameters
 
-def line_forword(A,W,b):
+def line_forword(A,W,b,keep_prob):
     
     """
     前向传导
@@ -124,12 +211,23 @@ def line_forword(A,W,b):
     其中A是上一层神经元的激活值
     并将当前层W，b，A保存下来是为了在反向传播中需要使用到
     """
+    if(keep_prob!=1):
+        D=np.random.rand(A.shape[0], A.shape[1])     # Step 1: initialize matrix D1 = np.random.rand(..., ...)
+        
+        #D=np.random.rand(A.shape[0],1)
+        D = (D < keep_prob)
+        #print(D)
+        A=A*D;
+        A=A/keep_prob
     
     Z=W.dot(A)+b
     
     assert(Z.shape==(W.shape[0],A.shape[1]))
-    cache=(A,W,b)
     
+    if(keep_prob!=1):
+        cache=(A,W,b,D)
+    else:
+        cache=(A,W,b)
     return Z,cache
 
 def sigmoid(Z):
@@ -162,7 +260,7 @@ def relu(Z):
     
     return A, cache
 
-def line_active_forword(Apre,W,b,activation):
+def line_active_forword(Apre,W,b,keep_prob,activation):
     
     """
     前向传导
@@ -170,7 +268,7 @@ def line_active_forword(Apre,W,b,activation):
     并且保存线性函数左边的值，与激活函数左边的值用于反向传播
     """
     
-    Z,line_cache=line_forword(Apre,W,b)
+    Z,line_cache=line_forword(Apre,W,b,keep_prob)
     
    # print("===================")
     #print(Z.shape)
@@ -187,7 +285,7 @@ def line_active_forword(Apre,W,b,activation):
     
     return A,cache
 
-def modle_forword(X,parameters):
+def model_forward(X,parameters,keep_prob):
     
     """
     前向传导
@@ -199,13 +297,12 @@ def modle_forword(X,parameters):
     caches=[];
     A=X
     L=len(parameters)//2
-    
     for l in range(1,L):
         Apre=A
-        A , cache = line_active_forword(Apre,parameters["W" + str(l)],parameters["b" + str(l)],activation="rule")
+        A , cache = line_active_forword(Apre,parameters["W" + str(l)],parameters["b" + str(l)],keep_prob[l-1],"rule")
         caches.append(cache)
-        
-    AL , cache = line_active_forword(A,parameters["W" + str(L)],parameters["b" + str(L)],activation="sigmoid")
+    
+    AL , cache = line_active_forword(A,parameters["W" + str(L)],parameters["b" + str(L)],keep_prob[L],"sigmoid")
     caches.append(cache)
     
     assert(AL.shape==(1,X.shape[1]))
@@ -221,10 +318,10 @@ def relu_backword(dA,cache):
     
     Z=cache
     
-    dZ = np.array(dA, copy=True)
+    #dZ = np.array(dA, copy=True)
+    #dZ[Z <= 0] = 0
     
-    dZ[Z <= 0] = 0
-
+    dZ = np.multiply(dA, np.int64(Z > 0))
     
     assert (dZ.shape == Z.shape)
     
@@ -251,7 +348,7 @@ def sigmoid_backword(dA,cache):
     
     return dZ
 
-def line_backward(dZ,cache):
+def line_backward(dZ,cache,lambd,keep_prob):
     
     """
     反向传播
@@ -260,16 +357,24 @@ def line_backward(dZ,cache):
     dW=1.0/m*dZ*A
     db=1.0/m*dZ
     """
-    
-    Apre, W, b = cache
-    
+    if(keep_prob!=1):
+        Apre, W, b, D = cache
+    else:
+        Apre, W, b = cache
     m = Apre.shape[1]
 
-    dW=1.0 / m * np.dot(dZ,Apre.T)
+    if lambd!=0:
+        dW=1.0 / m * np.dot(dZ,Apre.T) + 1.0/m * lambd * W
+    else:
+        dW=1.0 / m * np.dot(dZ,Apre.T)    
     db = 1.0 / m * np.sum(dZ, axis = 1, keepdims = True)
     
     dApre=np.dot(W.T,dZ)
-
+    if(keep_prob!=1):
+        ### START CODE HERE ### (≈ 2 lines of code)
+        dApre = D * dApre           # Step 1: Apply mask D2 to shut down the same neurons as during the forward propagation
+        dApre = dApre / keep_prob           # Step 2: Scale the value of neurons that haven't been shut down
+        ### END CODE HERE ###
     
     assert (dApre.shape == Apre.shape)
     assert (dW.shape == W.shape)
@@ -277,7 +382,7 @@ def line_backward(dZ,cache):
     
     return dApre,dW,db
 
-def line_active_backword(dA,cache,activation):
+def line_active_backword(dA,cache,activation,lambd,keep_prob):
     
     """
     反向传播
@@ -289,16 +394,16 @@ def line_active_backword(dA,cache,activation):
     if(activation=="relu"):
         
         dZ=relu_backword(dA,activation_cache)
-        dApre,dW,db=line_backward(dZ,line_cache)
+        dApre,dW,db=line_backward(dZ,line_cache,lambd,keep_prob)
         
     if(activation=="sigmoid"):
         
         dZ=sigmoid_backword(dA,activation_cache)
-        dApre,dW,db=line_backward(dZ,line_cache)
+        dApre,dW,db=line_backward(dZ,line_cache,lambd,keep_prob)
         
     return dApre,dW,db
 
-def modle_backward(AL,Y,caches):
+def model_backward(AL,Y,caches,lambd,keep_prob):
         
     """
     反向传播
@@ -317,13 +422,13 @@ def modle_backward(AL,Y,caches):
     
     current_cache=caches[L-1]
     
-    grads["dA" + str(L)], grads["dW" + str(L)], grads["db" + str(L)]=line_active_backword(dAL, current_cache, activation = "sigmoid")
+    grads["dA" + str(L)], grads["dW" + str(L)], grads["db" + str(L)]=line_active_backword(dAL, current_cache, "sigmoid",lambd,keep_prob[L])
     
     for l in reversed(range(L-1)):#l L-2,L-3,...L=0
     
         current_cache=caches[l]
         
-        dA_pre, dW, db=line_active_backword(grads["dA" + str(l+2)],current_cache,"relu")
+        dA_pre, dW, db=line_active_backword(grads["dA" + str(l+2)],current_cache,"relu",lambd,keep_prob[l])
         
         grads["dA" + str(l+1)]=dA_pre
         grads["dW" + str(l+1)]=dW
@@ -331,16 +436,24 @@ def modle_backward(AL,Y,caches):
         
     return grads
         
-def cumpute_loss(AL,Y):
+def cumpute_loss(AL,Y,parameters,lambd):
     
     """
     计算损失值
     """
+    L=len(parameters)//2
     
     m = Y.shape[1]
-    
+    #print("AL==========\n")
+    #print(AL)
     cost = (1.0/m) * (-np.dot(Y,np.log(AL).T) - np.dot(1-Y, np.log(1-AL).T))
     
+    L2_regularization_cost = 0
+    if lambd!=0:
+        for l in range(L):
+            L2_regularization_cost += 1.0/(2*m) * lambd * (np.sum(np.square(parameters["W" + str(l+1)]),keepdims=True))
+    
+    cost+=L2_regularization_cost
     
     cost = np.squeeze(cost)      # To make sure your cost's shape is what we expect (e.g. this turns [[17]] into 17).
         
@@ -348,45 +461,232 @@ def cumpute_loss(AL,Y):
     
     return cost
 
-def update_parameters(parameters,grads,learn_rate):
-    
-    """
-    上一次参数值，梯度，学习速率
-    更新参数
-    """
+def update_parameters_with_gd(parameters,grads,learn_rate):
     
     L=len(parameters)//2
     
     for l in range(L):
         parameters["W" + str(l+1)]-=learn_rate*grads["dW" + str(l+1)]
         parameters["b" + str(l+1)]-=learn_rate*grads["db" + str(l+1)]
-           
+        
     return parameters
 
-def two_layer_modle(X,Y,layer_dims,learn_rate=0.01,num_iterations = 3000, print_cost=True):
+def initialize_velocity(parameters):
+    
+    L = len(parameters) // 2 # number of layers in the neural networks
+    v = {}
+    
+    # Initialize velocity
+    for l in range(L):
+        ### START CODE HERE ### (approx. 2 lines)
+        v["dW" + str(l+1)] = np.zeros(parameters['W' + str(l+1)].shape)
+        v["db" + str(l+1)] = np.zeros(parameters['b' + str(l+1)].shape)
+        ### END CODE HERE ###
+        
+    return v
+
+def update_parameters_with_momentum(parameters, grads, beta, learning_rate):
+
+    L = len(parameters) // 2 # number of layers in the neural networks
+    
+    v = initialize_velocity(parameters)
+    
+    # Momentum update for each parameter
+    for l in range(L):
+        
+        ### START CODE HERE ### (approx. 4 lines)
+        # compute velocities
+        v["dW" + str(l+1)] = beta * v["dW" + str(l+1)] + (1-beta) * grads['dW' + str(l+1)]
+        v["db" + str(l+1)] = beta * v["db" + str(l+1)] + (1-beta) * grads['db' + str(l+1)]
+        # update parameters
+        parameters["W" + str(l+1)] = parameters['W' + str(l+1)] - learning_rate * v["dW" + str(l+1)]
+        parameters["b" + str(l+1)] = parameters['b' + str(l+1)] - learning_rate * v["db" + str(l+1)]
+        ### END CODE HERE ###
+        
+    return parameters, v
+
+def initialize_adam(parameters) :
+
+    L = len(parameters) // 2 # number of layers in the neural networks
+    v = {}
+    s = {}
+    
+    # Initialize v, s. Input: "parameters". Outputs: "v, s".
+    for l in range(L):
+    ### START CODE HERE ### (approx. 4 lines)
+        v["dW" + str(l+1)] = np.zeros(parameters["W" + str(l+1)].shape)
+        v["db" + str(l+1)] = np.zeros(parameters["b" + str(l+1)].shape)
+        s["dW" + str(l+1)] = np.zeros(parameters["W" + str(l+1)].shape)
+        s["db" + str(l+1)] = np.zeros(parameters["b" + str(l+1)].shape)
+    ### END CODE HERE ###
+    
+    return v, s
+def update_parameters_with_adam(parameters, grads, t, learning_rate,
+                                beta1 = 0.9, beta2 = 0.999,  epsilon = 1e-8):
+    """
+    Update parameters using Adam
+    
+    Arguments:
+    parameters -- python dictionary containing your parameters:
+                    parameters['W' + str(l)] = Wl
+                    parameters['b' + str(l)] = bl
+    grads -- python dictionary containing your gradients for each parameters:
+                    grads['dW' + str(l)] = dWl
+                    grads['db' + str(l)] = dbl
+    v -- Adam variable, moving average of the first gradient, python dictionary
+    s -- Adam variable, moving average of the squared gradient, python dictionary
+    learning_rate -- the learning rate, scalar.
+    beta1 -- Exponential decay hyperparameter for the first moment estimates 
+    beta2 -- Exponential decay hyperparameter for the second moment estimates 
+    epsilon -- hyperparameter preventing division by zero in Adam updates
+
+    Returns:
+    parameters -- python dictionary containing your updated parameters 
+    v -- Adam variable, moving average of the first gradient, python dictionary
+    s -- Adam variable, moving average of the squared gradient, python dictionary
+    """
+    
+    L = len(parameters) // 2                 # number of layers in the neural networks
+    
+    v, s = initialize_adam(parameters)
+    
+    v_corrected = {}                         # Initializing first moment estimate, python dictionary
+    s_corrected = {}                         # Initializing second moment estimate, python dictionary
+    
+    # Perform Adam update on all parameters
+    for l in range(L):
+        # Moving average of the gradients. Inputs: "v, grads, beta1". Output: "v".
+        ### START CODE HERE ### (approx. 2 lines)
+        v["dW" + str(l+1)] = beta1 * v["dW" + str(l+1)] + (1-beta1) * grads['dW' + str(l+1)]
+        v["db" + str(l+1)] = beta1 * v["db" + str(l+1)] + (1-beta1) * grads['db' + str(l+1)]
+        ### END CODE HERE ###
+
+        # Compute bias-corrected first moment estimate. Inputs: "v, beta1, t". Output: "v_corrected".
+        ### START CODE HERE ### (approx. 2 lines)
+        v_corrected["dW" + str(l+1)] = v["dW" + str(l+1)] / (1-np.power(beta1,t))
+        v_corrected["db" + str(l+1)] = v["db" + str(l+1)] / (1-np.power(beta1,t))
+        ### END CODE HERE ###
+
+        # Moving average of the squared gradients. Inputs: "s, grads, beta2". Output: "s".
+        ### START CODE HERE ### (approx. 2 lines)
+        s["dW" + str(l+1)] = beta2 * s["dW" + str(l+1)] + (1-beta2) * grads['dW' + str(l+1)]**2
+        s["db" + str(l+1)] = beta2 * s["db" + str(l+1)] + (1-beta2) * grads['db' + str(l+1)]**2
+        ### END CODE HERE ###
+
+        # Compute bias-corrected second raw moment estimate. Inputs: "s, beta2, t". Output: "s_corrected".
+        ### START CODE HERE ### (approx. 2 lines)
+        s_corrected["dW" + str(l+1)] = s["dW" + str(l+1)] / (1-np.power(beta2,t))
+        s_corrected["db" + str(l+1)] = s["db" + str(l+1)] / (1-np.power(beta2,t))
+        ### END CODE HERE ###
+
+        # Update parameters. Inputs: "parameters, learning_rate, v_corrected, s_corrected, epsilon". Output: "parameters".
+        ### START CODE HERE ### (approx. 2 lines)
+        parameters["W" + str(l+1)] = parameters["W"+str(l+1)] - np.power(0.9,t/1000)*learning_rate * v_corrected["dW"+str(l+1)] / (np.sqrt(s_corrected["dW"+str(l+1)])+epsilon)
+        parameters["b" + str(l+1)] = parameters["b"+str(l+1)] - np.power(0.9,t/1000)*learning_rate * v_corrected["db"+str(l+1)] / (np.sqrt(s_corrected["db"+str(l+1)])+epsilon)
+        ### END CODE HERE ###
+
+    return parameters, v, s
+
+def update_parameters(parameters,grads,learn_rate,t,optimizer,beta1,beta2,epsilon):
+    
+    """
+    上一次参数值，梯度，学习速率
+    更新参数
+    """    
+    
+    if optimizer == "gd":
+        parameters = update_parameters_with_gd(parameters, grads, learn_rate)
+        
+    elif optimizer == "momentum":
+        parameters, v = update_parameters_with_momentum(parameters, grads, beta1, learn_rate)
+    elif optimizer == "adam":
+        #t = t + 1 # Adam counter
+        parameters, v, s = update_parameters_with_adam(parameters, grads,t,learn_rate, beta1, beta2,epsilon)           
+    
+    
+    return parameters
+
+def two_layer_modle(X,Y,layer_dims,optimizer="adam",learn_rate=0.01,initialization="he",lambd=0.01,keep_prob = 0.9,
+    mini_batch_size = 64,beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_iterations = 30000, print_cost=True):
     
     """
     神经网络模型
     输入特征，输出特征，网络结构(可以包括每一层的激活函数类型)，学习速率，迭代次数，损失值
     """
+    L = len(layer_dims) 
     
-    grads = {}
     costs = []
+    
+    parameters=init_parameters_deep(layer_dims,initialization)
+    
+    if keep_prob<1:
+        keep_probs=np.ones(L)
+        for i in range(0,L):
+            if(i==0 or i==L-1):
+                keep_probs[i]=1
+            else:
+                keep_probs[i]=0.9
+    else:
+       keep_probs=np.ones(L)
+    seed=10    
+   # Xj=np.zeros((X.shape[0],1));
+   # Yj=np.zeros((Y.shape[0],1));
+    for i in range(num_iterations):
+        
+        """ Stochastic Gradient Descent """
+        
+#        for j in range(0,Y.shape[1]):
+#            
+#            ###传递过去的是一个一维数组
+#            Xj[:,0]=X[:,j]
+#            Yj[:,0]=Y[:,j]
+#            AL,caches=model_forward(Xj,parameters,keep_prob)
+#        
+#            cost=cumpute_loss(AL,Yj,parameters,lambd)
+#        
+#            grads=model_backward(AL,Yj,caches,lambd,keep_prob)
+#        
+#            parameters=update_parameters(parameters,grads,learn_rate)
+            
+            
+        """ Gradient Descent """
+#        AL,caches=model_forward(X,parameters,keep_prob)
+#        
+#        cost=cumpute_loss(AL,Y,parameters,lambd)
+#        
+#        grads=model_backward(AL,Y,caches,lambd,keep_prob)
+#        
+#        parameters=update_parameters(parameters,grads,learn_rate)
 
-    parameters=init_parameters_deep(layer_dims)
-    
-    i=0
-    while i<num_iterations:
-        AL,caches=modle_forword(X,parameters)
+        """ mini-batch Gradient Descent """
+
+        seed = seed + 1
+        minibatches = random_mini_batches(X, Y, mini_batch_size, seed)
         
-        cost=cumpute_loss(AL,Y)
-        
-        grads=modle_backward(AL,Y,caches)
-    
-        parameters=update_parameters(parameters,grads,learn_rate)
-        
-        if print_cost and i%10==0:
+        for minibatch in minibatches:
+         
+            # Select a minibatch
+            (minibatch_X, minibatch_Y) = minibatch
+
+            # Forward propagation
+            AL, caches = model_forward(minibatch_X, parameters,keep_probs)
+
+            # Compute cost
+            cost = cumpute_loss(AL, minibatch_Y,parameters,lambd)
+
+            # Backward propagation
+            grads = model_backward(AL, minibatch_Y, caches,lambd,keep_probs)
+            
+            # update_parameters
+            parameters=update_parameters(parameters,grads,learn_rate,i+1,optimizer,beta1,beta2,epsilon)
+            
+        if print_cost and i%1000==0:
             print(cost)
+#            line_cache,activation_cache=caches[2]
+#            Z=activation_cache
+#            print(Z)
+#            A,W,b,D=line_cache
+#            print(A,W,b,D)
             costs.append(cost)
         i+=1
     plt.plot(np.squeeze(costs))
@@ -405,10 +705,9 @@ def predict(X,Y,parameters):
 
     """
     m=X.shape[1]
-    
     pro=np.zeros((1,m))
     
-    A,cache=modle_forword(X,parameters)
+    A,cache=model_forward(X,parameters,[1,1,1,1])
     print(A.shape)
     
     for i in range(0, A.shape[1]):
@@ -423,7 +722,8 @@ def predict(X,Y,parameters):
         if(pro[0,i]==Y[0,i]):
             acc+=1
     print(acc)    
-    print("Accuracy: "  + str(np.sum((pro - Y ==0.0)/m)))
+    
+    print("Accuracy: "  + str(np.mean((pro[0,:] == Y[0,:]))))
         
     return pro
   
@@ -441,21 +741,25 @@ def main():
     4预测
 
     """  
-    train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig, classes=load_dataset()
-    
+    a=np.zeros([4,3])
+    print(a)
+    #train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig, classes=load_dataset()
+    #train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig=load_dataset_2()
+    train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig=load_2D_dataset()
     
     train=np.concatenate([train_set_x_orig, train_set_y_orig],axis=0)
     np.savetxt("text.txt",train)
-    
-    input(q)
     
     in_n=train_set_x_orig.shape[0]
     hid_n=7
     out_n=1
     layer_dims=(in_n,hid_n,out_n)
     
-    layer_dims=(12288,20,7,5,1)
+    layer_dims=(in_n,20,3,1)
     parameters=two_layer_modle(train_set_x_orig,train_set_y_orig,layer_dims)
+    
+    predict(train_set_x_orig,train_set_y_orig,parameters)
+    
     predict(test_set_x_orig,test_set_y_orig,parameters)
     print(test_set_y_orig)
     

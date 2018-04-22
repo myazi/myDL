@@ -31,7 +31,7 @@ public:
     /**
     加载数值型样本数据
     */
-    int loadData(dataToMatrix *dtm,char *file)
+    int loadData(dataToMatrix *dtm,const char *file)
     {
         int i=0,j=0;
         ifstream infile;
