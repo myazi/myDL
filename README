@@ -2,3 +2,15 @@
   深度学习常用算法
 
     1.DNN 可设置网络结构参数，层数，神经元个数，激活函数
+
+--------------------------------------------------------
+
+    2.初始化： 随机，"何"，"arXiv"
+    
+    3.方差/偏差： Regularization， Dropout
+    
+    4 随机采用： Stochastic gradient descent，mini-bitch
+    
+    5 优化方法： Gradient Descent，Momentum Gradient Descent，Adam
+    
+    6 矩阵库更新： 主要考虑内存分配问题，但存在申请内存失败问题
