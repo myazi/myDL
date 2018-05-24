@@ -489,7 +489,7 @@ def update_parameters_with_momentum(parameters, grads, beta, learning_rate):
 
     L = len(parameters) // 2 # number of layers in the neural networks
     
-    v = initialize_velocity(parameters)
+    v = initialize_velocity(parameters) ##初始化的操作不能放到更新操作内部，应该在进入迭代循环之前就初始化，不能每次更新都重新初始化为0
     
     # Momentum update for each parameter
     for l in range(L):
@@ -548,7 +548,7 @@ def update_parameters_with_adam(parameters, grads, t, learning_rate,
     
     L = len(parameters) // 2                 # number of layers in the neural networks
     
-    v, s = initialize_adam(parameters)
+    v, s = initialize_adam(parameters)#初始化的操作不能放到更新操作内部，应该在进入迭代循环之前就初始化，不能每次更新都重新初始化为0
     
     v_corrected = {}                         # Initializing first moment estimate, python dictionary
     s_corrected = {}                         # Initializing second moment estimate, python dictionary
