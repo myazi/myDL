@@ -8,7 +8,7 @@
     
     3.方差/偏差： Regularization， Dropout
     
-    4 随机采用： Stochastic gradient descent，mini-bitch
+    4 随机采样： Stochastic gradient descent，mini-bitch
     
     5 优化方法： Gradient Descent，Momentum Gradient Descent，Adam
     
