@@ -8,7 +8,7 @@
     
     3.方差/偏差： Regularization， Dropout
     
-    4 随机采样： Stochastic gradient descent，mini-bitch
+    4 随机采样： Stochastic gradient descent，mini-batch
     
     5 优化方法： Gradient Descent，Momentum Gradient Descent，Adam
     
@@ -32,7 +32,7 @@
 	2.1 防止过拟合  提前结束， 增加训练样本， 正则项， Dropout
 	2.2 梯度消失问题  初始化，梯度剪辑，激活函数, Bitch-Norm，Res-net，LSTM
 	2.3 优化方法（加速 学习率）  Mini-bitch，动量的梯度下降，RMS-prop，Adam
-	2.4 梯度检验， 调参（网络结构：层，神经元个数；学习率： ；优化方法： ；正则化项： ；Dropout；Mini-bitch size；迭代次数；初始化方式）
+	2.4 梯度检验， 调参（网络结构：层，神经元个数；学习率： ；优化方法： ；正则化项： ；Dropout；Mini-batch size；迭代次数；初始化方式）
 3 结构化机器学习
 	3.1 快速搭建好第一个系统：框架使用，开源使用， 迁移学习，数据预处理
 	3.2 误差分析：偏差和方差分析，正交化调试，控制变量法调试	
